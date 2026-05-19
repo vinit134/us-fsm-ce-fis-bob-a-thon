@@ -235,6 +235,7 @@ spec:
     post {
         always {
             echo "=== Pipeline Complete ==="
+            echo "Build URL: ${env.BUILD_URL}"
             echo "Result: ${currentBuild.result ?: 'SUCCESS'}"
         }
     }
