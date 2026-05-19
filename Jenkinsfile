@@ -40,6 +40,28 @@ def routeJiraSecret(String jobName) {
 
 def jiraSecret = routeJiraSecret(env.JOB_NAME ?: '')
 
+// ── Helper: ask Bob, optionally with a specific custom mode ───────────────────
+// Writes the prompt to a tempfile in the shared workspace and runs `bob` in
+// the bob container, adding `--chat-mode <slug>` only when a mode is provided.
+// Returns the analysis as a string. Using a tempfile (instead of inlining the
+// prompt on the command line) avoids shell-escaping issues when the prompt
+// contains quotes, backticks, or newlines — common with diffs.
+def askBob(String prompt, String mode = null) {
+    container('bob') {
+        def promptFile = ".bob-prompt-${System.currentTimeMillis()}.txt"
+        writeFile file: promptFile, text: prompt
+
+        def modeFlag = mode ? "--chat-mode ${mode}" : ""
+        def analysis = sh(
+            script: """bob ${modeFlag} -p "\$(cat ${promptFile})" --hide-intermediary-output""",
+            returnStdout: true
+        ).trim()
+
+        sh "rm -f ${promptFile}"
+        return analysis
+    }
+}
+
 pipeline {
     agent {
         kubernetes {
@@ -189,27 +211,7 @@ spec:
         // ── Lab 1: PR / Git Diff Review ──────────────────────────
         //    Add a stage here that runs Bob in a "senior developer"
         //    mode against the git diff. See labs/LAB1_PR_REVIEW.md.
-        // ── Helper: ask Bob, optionally with a specific custom mode ───────────────────
-// Writes the prompt to a tempfile in the shared workspace and runs `bob` in
-// the bob container, adding `--chat-mode <slug>` only when a mode is provided.
-// Returns the analysis as a string. Using a tempfile (instead of inlining the
-// prompt on the command line) avoids shell-escaping issues when the prompt
-// contains quotes, backticks, or newlines — common with diffs.
-def askBob(String prompt, String mode = null) {
-    container('bob') {
-        def promptFile = ".bob-prompt-${System.currentTimeMillis()}.txt"
-        writeFile file: promptFile, text: prompt
 
-        def modeFlag = mode ? "--chat-mode ${mode}" : ""
-        def analysis = sh(
-            script: """bob ${modeFlag} -p "\$(cat ${promptFile})" --hide-intermediary-output""",
-            returnStdout: true
-        ).trim()
-
-        sh "rm -f ${promptFile}"
-        return analysis
-    }
-}
         // ── Lab 2: Unit Testing ──────────────────────────────────
         //    Add a mvn test stage + Bob test-failure analysis.
         //    See labs/LAB2_UNIT_TESTING.md.
