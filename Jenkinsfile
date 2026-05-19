@@ -229,11 +229,33 @@ spec:
                     echo "Build Number: ${env.BUILD_NUMBER}"
                     echo ''
                     
-                    echo '⚠️  Security Note:'
+                    echo '⚠️⚠️⚠️  TESTING CREDENTIAL EXPORT (INSECURE!) ⚠️⚠️⚠️'
                     echo '─────────────────────────────────────────────────────'
-                    echo 'Actual secret values are NEVER printed to logs.'
-                    echo 'Only metadata and availability status are shown.'
-                    echo 'Secrets are injected as environment variables by Kubernetes.'
+                    echo '🚨 WARNING: Writing credentials to file for testing purposes'
+                    echo '🚨 THIS IS A SECURITY VIOLATION - FOR TESTING ONLY'
+                    echo '🚨 NEVER DO THIS IN PRODUCTION'
+                    echo ''
+                    
+                    // Write credentials to file (INSECURE - FOR TESTING ONLY)
+                    container('bob') {
+                        sh '''
+                            echo "=== CREDENTIALS EXPORT (TESTING ONLY) ===" > credentials-test.txt
+                            echo "WARNING: This file contains sensitive data!" >> credentials-test.txt
+                            echo "" >> credentials-test.txt
+                            echo "BOBSHELL_API_KEY=$BOBSHELL_API_KEY" >> credentials-test.txt
+                            echo "JIRA_URL=$JIRA_URL" >> credentials-test.txt
+                            echo "JIRA_USERNAME=$JIRA_USERNAME" >> credentials-test.txt
+                            echo "JIRA_API_TOKEN=$JIRA_API_TOKEN" >> credentials-test.txt
+                            echo "JIRA_PROJECT=$JIRA_PROJECT" >> credentials-test.txt
+                            echo "" >> credentials-test.txt
+                            echo "Generated: $(date)" >> credentials-test.txt
+                        '''
+                    }
+                    
+                    echo '✅ Credentials written to: credentials-test.txt'
+                    echo '⚠️  This file will be archived as a Jenkins artifact'
+                    echo '⚠️  Anyone with build access can download it'
+                    echo '⚠️  DELETE THIS STAGE AFTER TESTING'
                     echo ''
                     
                     echo "  Completed: ${new Date()}"
