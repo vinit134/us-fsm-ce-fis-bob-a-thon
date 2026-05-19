@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "atlassian": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "set -a; source .env; set +a; exec uvx mcp-atlassian"
+      ],
+      "disabled": false,
+      "alwaysAllow": [
+        "jira_get_issue",
+        "jira_search",
+        "jira_add_comment"
+      ]
+    }
+  }
+}
