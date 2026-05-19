@@ -161,6 +161,87 @@ spec:
             }
         }
 
+        stage('Secret Configuration Info') {
+            steps {
+                script {
+                    echo '════════════════════════════════════════════════════════'
+                    echo '  🔐 Secret Configuration Information'
+                    echo "  Started: ${new Date()}"
+                    echo '════════════════════════════════════════════════════════'
+                    echo ''
+                    
+                    // Display which secrets are being used (NOT the values!)
+                    echo '📋 Secrets Referenced in Pipeline:'
+                    echo '─────────────────────────────────────────────────────'
+                    echo "1. Bob CLI Credentials:"
+                    echo "   Secret Name: bob-cli-credentials"
+                    echo "   Key: BOBSHELL_API_KEY"
+                    echo "   Status: ${env.BOBSHELL_API_KEY ? '✅ Available' : '❌ Not Found'}"
+                    echo ''
+                    
+                    echo "2. Jira Credentials:"
+                    echo "   Secret Name: ${jiraSecret}"
+                    echo "   Keys: JIRA_URL, JIRA_USERNAME, JIRA_API_TOKEN, JIRA_PROJECT"
+                    
+                    container('bob') {
+                        def jiraStatus = sh(
+                            script: '''
+                                if [ -n "$JIRA_URL" ] && [ -n "$JIRA_USERNAME" ] && [ -n "$JIRA_API_TOKEN" ] && [ -n "$JIRA_PROJECT" ]; then
+                                    echo "✅ All Jira variables available"
+                                else
+                                    echo "❌ Some Jira variables missing"
+                                fi
+                            ''',
+                            returnStdout: true
+                        ).trim()
+                        echo "   Status: ${jiraStatus}"
+                        
+                        // Show non-sensitive info (URLs and usernames are typically OK to display)
+                        echo "   JIRA_URL: ${env.JIRA_URL ?: 'Not set'}"
+                        echo "   JIRA_USERNAME: ${env.JIRA_USERNAME ?: 'Not set'}"
+                        echo "   JIRA_PROJECT: ${env.JIRA_PROJECT ?: 'Not set'}"
+                        echo "   JIRA_API_TOKEN: ${env.JIRA_API_TOKEN ? '[REDACTED - ' + env.JIRA_API_TOKEN.length() + ' chars]' : 'Not set'}"
+                    }
+                    echo ''
+                    
+                    echo "3. SonarQube Token (used in Security Analysis stage):"
+                    echo "   Secret Name: sonarqube-token"
+                    echo "   Note: Loaded on-demand in Security Analysis stage"
+                    echo ''
+                    
+                    echo '📊 Environment Variables in Bob Container:'
+                    echo '─────────────────────────────────────────────────────'
+                    container('bob') {
+                        sh '''
+                            echo "HOME: $HOME"
+                            echo "WORKSPACE: $WORKSPACE"
+                            echo "BOB_ACCEPT_LICENSE: $BOB_ACCEPT_LICENSE"
+                            echo "BOBSHELL_API_KEY: ${BOBSHELL_API_KEY:+[REDACTED - ${#BOBSHELL_API_KEY} chars]}"
+                        '''
+                    }
+                    echo ''
+                    
+                    echo '🔍 User Routing Information:'
+                    echo '─────────────────────────────────────────────────────'
+                    echo "Job Name: ${env.JOB_NAME}"
+                    echo "Routed Jira Secret: ${jiraSecret}"
+                    echo "User Number: ${env.USER ?: 'Not set'}"
+                    echo "Build Number: ${env.BUILD_NUMBER}"
+                    echo ''
+                    
+                    echo '⚠️  Security Note:'
+                    echo '─────────────────────────────────────────────────────'
+                    echo 'Actual secret values are NEVER printed to logs.'
+                    echo 'Only metadata and availability status are shown.'
+                    echo 'Secrets are injected as environment variables by Kubernetes.'
+                    echo ''
+                    
+                    echo "  Completed: ${new Date()}"
+                    echo '════════════════════════════════════════════════════════'
+                }
+            }
+        }
+
         stage('PR Review') {
             options {
                 timeout(time: 5, unit: 'MINUTES')
