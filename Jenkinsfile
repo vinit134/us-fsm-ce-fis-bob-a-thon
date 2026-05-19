@@ -53,7 +53,7 @@ def askBob(String prompt, String mode = null) {
 
         def modeFlag = mode ? "--chat-mode ${mode}" : ""
         def analysis = sh(
-            script: "bob ${modeFlag} -p "\$(cat ${promptFile})" --hide-intermediary-output",
+            script: """bob ${modeFlag} -p "\$(cat ${promptFile})" --hide-intermediary-output""",
             returnStdout: true
         ).trim()
 
