@@ -208,6 +208,69 @@ spec:
             }
         }
 
+        stage('Unit Tests') {
+            options {
+                timeout(time: 10, unit: 'MINUTES')
+            }
+            steps {
+                script {
+                    echo '════════════════════════════════════════════════════════'
+                    echo '  🧪 Running Unit Tests'
+                    echo "  Started: ${new Date()}"
+                    echo '════════════════════════════════════════════════════════'
+                    
+                    // Run Maven tests and capture result
+                    def testResult = sh(
+                        script: 'cd order-service && mvn test',
+                        returnStatus: true
+                    )
+                    
+                    // Publish JUnit test results
+                    junit testResults: 'order-service/target/surefire-reports/*.xml',
+                          allowEmptyResults: true,
+                          skipPublishingChecks: false
+                    
+                    // If tests failed, analyze with Bob
+                    if (testResult != 0) {
+                        echo ''
+                        echo '⚠️  Tests failed - analyzing with Bob...'
+                        echo ''
+                        
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                            def prompt = """Analyze the test failures in order-service/target/surefire-reports/
+alongside the relevant source files under order-service/src/.
+Provide a concise analysis of what failed and potential fixes."""
+                            
+                            def analysis = askBob(prompt, 'pipeline-test-failure-analyzer')
+                            
+                            echo ''
+                            echo analysis
+                            echo ''
+                            
+                            // Save analysis for archiving
+                            writeFile file: 'bob-test-analysis.md', text: analysis
+                        }
+                        
+                        echo "  Test Analysis: bob-test-analysis.md (archived)"
+                    } else {
+                        echo ''
+                        echo '✅ All tests passed!'
+                        echo ''
+                    }
+                    
+                    echo "  Completed: ${new Date()}"
+                    echo '════════════════════════════════════════════════════════'
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'bob-test-analysis.md',
+                                   allowEmptyArchive: true,
+                                   fingerprint: true
+                }
+            }
+        }
+
         // ── Lab 1: PR / Git Diff Review ──────────────────────────
         //    Add a stage here that runs Bob in a "senior developer"
         //    mode against the git diff. See labs/LAB1_PR_REVIEW.md.
